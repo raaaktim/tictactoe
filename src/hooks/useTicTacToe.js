@@ -13,8 +13,26 @@ export function useTicTacToe({ onPlayMove, onWin, onTie }) {
 
   const [board, setBoard] = useState(() => Array(gridSize * gridSize).fill(null));
   const [isXNext, setIsXNext] = useState(true);
-  const [gameMode, setGameMode] = useState('local2p'); // 'local2p' | 'ai'
-  const [aiDifficulty, setAiDifficulty] = useState('smart'); // 'smart' | 'casual'
+
+  // Default to AI Smart as requested
+  const [gameMode, setGameMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ios_ttt_game_mode');
+      return saved ? JSON.parse(saved) : 'ai';
+    } catch {
+      return 'ai';
+    }
+  });
+
+  const [aiDifficulty, setAiDifficultyState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ios_ttt_ai_diff');
+      return saved ? JSON.parse(saved) : 'smart';
+    } catch {
+      return 'smart';
+    }
+  });
+
   const [isAiThinking, setIsAiThinking] = useState(false);
   
   // Independent score persistence for 4x4 and 6x6
@@ -45,14 +63,16 @@ export function useTicTacToe({ onPlayMove, onWin, onTie }) {
     }
   }, [scoresByGrid]);
 
-  // Save grid size preference
+  // Save preferences
   useEffect(() => {
     try {
       localStorage.setItem('ios_ttt_grid_size', JSON.stringify(gridSize));
+      localStorage.setItem('ios_ttt_game_mode', JSON.stringify(gameMode));
+      localStorage.setItem('ios_ttt_ai_diff', JSON.stringify(aiDifficulty));
     } catch (e) {
       console.error(e);
     }
-  }, [gridSize]);
+  }, [gridSize, gameMode, aiDifficulty]);
 
   // Handle Game Completion
   const handleGameEnd = useCallback((result) => {
@@ -96,7 +116,7 @@ export function useTicTacToe({ onPlayMove, onWin, onTie }) {
     return true;
   }, [board, winnerInfo, isAiThinking, isXNext, onPlayMove, handleGameEnd]);
 
-  // AI Turn trigger
+  // AI Turn trigger: optimized with micro-delay so mobile UI never hitches
   useEffect(() => {
     if (gameMode !== 'ai' || isXNext || winnerInfo) return;
 
@@ -117,7 +137,7 @@ export function useTicTacToe({ onPlayMove, onWin, onTie }) {
         }
       }
       setIsAiThinking(false);
-    }, 350);
+    }, 220);
 
     return () => clearTimeout(timer);
   }, [gameMode, isXNext, board, winnerInfo, aiDifficulty, onPlayMove, handleGameEnd]);
@@ -156,6 +176,10 @@ export function useTicTacToe({ onPlayMove, onWin, onTie }) {
     setGameMode(mode);
     resetGame();
   }, [resetGame]);
+
+  const setAiDifficulty = useCallback((diff) => {
+    setAiDifficultyState(diff);
+  }, []);
 
   const currentScores = scoresByGrid[String(gridSize)] || { x: 0, o: 0, ties: 0 };
 

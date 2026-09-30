@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { GameCell } from './GameCell';
 
 export function GameBoard({
@@ -10,20 +10,40 @@ export function GameBoard({
   hoverMark
 }) {
   const boardRef = useRef(null);
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
-  // Subtle 3D iOS Vision Glass Parallax Tilt
-  const handleMouseMove = (e) => {
-    if (!boardRef.current) return;
-    const rect = boardRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 8;
-    const y = ((e.clientY - rect.top) / rect.height - 0.5) * -8;
-    setTilt({ x: y, y: x });
-  };
+  // High-performance 3D parallax without triggering React state re-renders
+  useEffect(() => {
+    const isDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    if (!isDesktop || !boardRef.current) return;
 
-  const handleMouseLeave = () => {
-    setTilt({ x: 0, y: 0 });
-  };
+    const el = boardRef.current;
+    let rafId = null;
+
+    const handleMouseMove = (e) => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        const rect = el.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width - 0.5) * 8;
+        const y = ((e.clientY - rect.top) / rect.height - 0.5) * -8;
+        el.style.transform = `rotateX(${y}deg) rotateY(${x}deg)`;
+        rafId = null;
+      });
+    };
+
+    const handleMouseLeave = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      el.style.transform = 'rotateX(0deg) rotateY(0deg)';
+    };
+
+    el.addEventListener('mousemove', handleMouseMove, { passive: true });
+    el.addEventListener('mouseleave', handleMouseLeave, { passive: true });
+
+    return () => {
+      el.removeEventListener('mousemove', handleMouseMove);
+      el.removeEventListener('mouseleave', handleMouseLeave);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, []);
 
   const is4x4 = gridSize === 4;
 
@@ -36,14 +56,9 @@ export function GameBoard({
       {/* 3D Glass Housing */}
       <div
         ref={boardRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        style={{
-          transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-          transition: 'transform 0.2s cubic-bezier(0.2, 0.8, 0.4, 1)',
-        }}
-        className={`ios-glass-card relative overflow-hidden backdrop-blur-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] transition-all duration-300 ${
-          is4x4 ? 'p-3.5 sm:p-4' : 'p-3 sm:p-4'
+        style={{ transition: 'transform 0.2s cubic-bezier(0.2, 0.8, 0.4, 1)' }}
+        className={`ios-glass-card relative overflow-hidden shadow-[0_20px_50px_-15px_rgba(0,0,0,0.6)] transition-all duration-300 ${
+          is4x4 ? 'p-3 sm:p-4' : 'p-2.5 sm:p-3.5'
         }`}
       >
         {/* Ambient Glass Surface Specular Sheen */}

@@ -192,7 +192,7 @@ function getCandidateMoves(board) {
   });
 
   scored.sort((a, b) => b.score - a.score);
-  const maxCandidates = size === 4 ? 12 : 10;
+  const maxCandidates = size === 4 ? 8 : 6;
   return scored.slice(0, maxCandidates).map(item => item.idx);
 }
 
