@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LiquidWallpaper } from './components/LiquidWallpaper';
 import { GridSizeSelector } from './components/GridSizeSelector';
 import { SegmentedControl } from './components/SegmentedControl';
@@ -6,11 +6,14 @@ import { ScoreBoard } from './components/ScoreBoard';
 import { GameBoard } from './components/GameBoard';
 import { Controls } from './components/Controls';
 import { WinnerModal } from './components/WinnerModal';
+import { RulesModal } from './components/RulesModal';
 import { useIOSAudio } from './hooks/useIOSAudio';
 import { useTicTacToe } from './hooks/useTicTacToe';
 import { Sparkles } from 'lucide-react';
 
 export default function App() {
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
+
   const {
     isMuted,
     toggleMute,
@@ -124,12 +127,13 @@ export default function App() {
           hoverMark={isXNext ? 'X' : 'O'}
         />
 
-        {/* Controls (Restart, Mute, Clear) */}
+        {/* Controls (Restart, Rules, Mute, Clear) */}
         <Controls
           onResetGame={resetGame}
           onResetScores={resetScores}
           isMuted={isMuted}
           onToggleMute={toggleMute}
+          onOpenRules={() => setIsRulesOpen(true)}
           onTap={playTap}
         />
       </main>
@@ -142,9 +146,26 @@ export default function App() {
         onTap={playTap}
       />
 
+      {/* iOS Vision Modal for Rules & Guide */}
+      <RulesModal
+        isOpen={isRulesOpen}
+        onClose={() => setIsRulesOpen(false)}
+        initialGridSize={gridSize}
+        onTap={playTap}
+      />
+
       {/* Footer Info */}
-      <footer className="mt-3 text-center z-10">
-        <span className="text-[11px] font-medium text-white/40 tracking-wider">
+      <footer className="mt-3 text-center z-10 flex flex-col items-center gap-1">
+        <button
+          onClick={() => {
+            playTap();
+            setIsRulesOpen(true);
+          }}
+          className="text-xs text-ios-cyan/80 hover:text-ios-cyan transition-colors underline underline-offset-4 cursor-pointer"
+        >
+          View Rules & 54 Winning Pathways
+        </button>
+        <span className="text-[10px] font-medium text-white/40 tracking-wider">
           Dual Section Architecture • iOS Frosted Glass & Dynamic Physics
         </span>
       </footer>
